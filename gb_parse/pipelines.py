@@ -1,25 +1,37 @@
-from itemadapter import ItemAdapter
-from scrapy import Request
-from scrapy.pipelines.images import ImagesPipeline
-from pymongo import MongoClient
+import sqlite3
+from .items import InstaUser, InstaFollow
 
+# conn = sqlite3.connect('instagramparse.db')
+# cur = conn.cursor()
+#
+# # cur.executescript("""
+# #     create table users(
+# #         id,
+# #         username,
+# #         date_parse
+# #     );
+# #
+# #     create table followings(
+# #         from_user_id,
+# #         to_user_id,
+# #         date_parse
+# #     );
+# #     """)
+# #
+# # conn.close()
 
 class GbParsePipeline:
     def __init__(self):
-        self.db = MongoClient()['parse_gb_11_2']
+        self.conn = sqlite3.connect('instagramparse.db')
+        self.cur = self.conn.cursor()
 
     def process_item(self, item, spider):
-        if spider.db_type == 'MONGO':
-            collection = self.db[spider.name]
-            collection.insert_one(item)
-        return item
-
-
-class GbImagePipeline(ImagesPipeline):
-    def get_media_requests(self, item, info):
-        for img_url in item.get('images', []):
-            yield Request(img_url)
-
-    def item_completed(self, results, item, info):
-        item['images'] = [itm[1] for itm in results]
+        if isinstance(item, InstaUser):
+            values = tuple(item.values())
+            self.cur.execute('INSERT INTO users VALUES (?,?,?)', values)
+            self.conn.commit()
+        elif isinstance(item, InstaFollow):
+            values = tuple(item.values())
+            self.cur.execute('INSERT INTO followings VALUES (?,?,?)', values)
+            self.conn.commit()
         return item

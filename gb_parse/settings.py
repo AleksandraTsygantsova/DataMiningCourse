@@ -21,7 +21,6 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
 
-IMAGES_STORE = 'images'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 64
@@ -68,7 +67,6 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    'gb_parse.pipelines.GbParsePipeline': 300,
-   'gb_parse.pipelines.GbImagePipeline': 200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
