@@ -12,7 +12,7 @@ class InstagramSpider(scrapy.Spider):
     api_url = '/graphql/query/'
     query_hash = {
         'following': "d04b0a864b4b54837c0d870b0e77e076",
-        'followers': "",
+        'followers': "c76146de99bb02f6415203be841dd25a",
     }
 
     def __init__(self, login, enc_password, user, *args, **kwargs):
@@ -58,32 +58,59 @@ class InstagramSpider(scrapy.Spider):
                 "first": 100,
             }
         url = f'{self.api_url}?query_hash={self.query_hash["following"]}&variables={json.dumps(variables)}'
-        yield response.follow(url, callback=self.get_followings, cb_kwargs={'user': user})
+        yield response.follow(url, callback=self.get_followings, cb_kwargs={'user': user, 'query_hash': self.query_hash["following"]})
+        url = f'{self.api_url}?query_hash={self.query_hash["followers"]}&variables={json.dumps(variables)}'
+        yield response.follow(url, callback=self.get_followings, cb_kwargs={'user': user, 'query_hash': self.query_hash["followers"]})
 
 
-    def get_followings(self, response, user):
+    def get_followings(self, response, user, query_hash):
         follow_data = response.json()
-        yield from self.get_followings_item(follow_data, user)
-        if follow_data['data']['user']['edge_follow']['page_info']['has_next_page']:
-            variables = {
-                'id': user['id'],
-                'first': 100,
-                'after': follow_data['data']['user']['edge_follow']['page_info']['end_cursor'],
-            }
-            yield from self.get_api_request(response, user, variables)
+        yield from self.get_followings_item(follow_data, user, query_hash)
+        if query_hash == self.query_hash["following"]:
+            if follow_data['data']['user']['edge_follow']['page_info']['has_next_page']:
+                variables = {
+                    'id': user['id'],
+                    'first': 100,
+                    'after': follow_data['data']['user']['edge_follow']['page_info']['end_cursor'],
+                }
+                yield from self.get_api_request(response, user, variables)
+        else:
+            if follow_data['data']['user']['edge_followed_by']['page_info']['has_next_page']:
+                variables = {
+                    'id': user['id'],
+                    'first': 100,
+                    'after': follow_data['data']['user']['edge_followed_by']['page_info']['end_cursor'],
+                }
+                yield from self.get_api_request(response, user, variables)
 
-    def get_followings_item(self, follow_data, user):
-        for item in follow_data['data']['user']['edge_follow']['edges']:
-            yield InstaFollow(
-                from_user_id=user['id'],
-                to_user_id=item['node']['id'],
-                date_parse=dt.datetime.utcnow()
-            )
-            yield InstaUser(
-                id=item['node']['id'],
-                username=item['node']['username'],
-                date_parse=dt.datetime.utcnow()
-            )
+
+    def get_followings_item(self, follow_data, user, query_hash):
+        if query_hash == self.query_hash["following"]:
+            for item in follow_data['data']['user']['edge_follow']['edges']:
+                yield InstaFollow(
+                    from_user_id=user['id'],
+                    to_user_id=item['node']['id'],
+                    date_parse=dt.datetime.utcnow()
+                )
+                yield InstaUser(
+                    id=item['node']['id'],
+                    username=item['node']['username'],
+                    date_parse=dt.datetime.utcnow()
+                )
+        else:
+            for item in follow_data['data']['user']['edge_followed_by']['edges']:
+                yield InstaFollow(
+                    from_user_id=item['node']['id'],
+                    to_user_id=user['id'],
+                    date_parse=dt.datetime.utcnow()
+                )
+                yield InstaUser(
+                    id=item['node']['id'],
+                    username=item['node']['username'],
+                    date_parse=dt.datetime.utcnow()
+                )
+
+
 
     @staticmethod
     def js_data_extract(response):
