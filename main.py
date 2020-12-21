@@ -11,3 +11,5 @@ if __name__ == '__main__':
     crawl_proc = CrawlerProcess(settings=crawl_settings)
     crawl_proc.crawl(InstagramSpider, login=os.getenv('LOGIN'), enc_password=os.getenv('PASSWORD'), user='alistale')
     crawl_proc.start()
+
+

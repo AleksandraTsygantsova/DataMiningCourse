@@ -60,8 +60,6 @@ class InstagramSpider(scrapy.Spider):
             }
         url_following = f'{self.api_url}?query_hash={self.query_hash["following"]}&variables={json.dumps(variables)}'
         yield response.follow(url_following, callback=self.get_followings, cb_kwargs={'user': user, 'query_hash': self.query_hash["following"]})
-        #url_follower = f'{self.api_url}?query_hash={self.query_hash["followers"]}&variables={json.dumps(variables)}'
-        #yield response.follow(url_follower, callback=self.get_followings, cb_kwargs={'user': user, 'query_hash': self.query_hash["followers"]})
 
     def get_api_followers_request(self, response, user, variables=None):
         if variables is None:
