@@ -13,7 +13,9 @@ cur.executescript("""
 
     create table followings(
         from_user_id,
+        from_username,
         to_user_id,
+        to_username,
         date_parse
     );
     """)
@@ -30,8 +32,9 @@ class GbParsePipeline:
             values = tuple(item.values())
             self.cur.execute('INSERT INTO users VALUES (?,?,?)', values)
             self.conn.commit()
+
         elif isinstance(item, InstaFollow):
             values = tuple(item.values())
-            self.cur.execute('INSERT INTO followings VALUES (?,?,?)', values)
+            self.cur.execute('INSERT INTO followings VALUES (?,?,?,?,?)', values)
             self.conn.commit()
         return item

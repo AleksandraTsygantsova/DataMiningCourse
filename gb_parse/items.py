@@ -21,4 +21,6 @@ class InstaFollow(scrapy.Item):
     _id = scrapy.Field()
     date_parse = scrapy.Field()
     from_user_id = scrapy.Field()
+    from_username = scrapy.Field()
     to_user_id = scrapy.Field()
+    to_username = scrapy.Field()
