@@ -18,10 +18,9 @@ class Parser:
 
     def start_crawl(self, user_list):
         print(f'Parse process for user {[user_list]} started')
-        yield self.crawl_proc.crawl(InstagramSpider, login=os.getenv('LOGIN'),
-                                    enc_password=os.getenv('PASSWORD'), user_from=user_list)
-        self.crawl_proc.stop()
-
+        runner = self.crawl_proc.crawl(InstagramSpider, login=os.getenv('LOGIN'),
+                              enc_password=os.getenv('PASSWORD'), user_from=user_list)
+        self.crawl_proc.start()
         print(f'Parse process for user {[user_list]} finished')
         print('Reactor stopping, system sleep for a 15 sec.')
         time.sleep(15)

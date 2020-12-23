@@ -1,17 +1,17 @@
 import sqlite3
 from .items import InstaUser, InstaFollow
 
-conn = sqlite3.connect('instagramparse.db')
+conn = sqlite3.connect('instagramparse_demo.db')
 cur = conn.cursor()
 
 cur.executescript("""
-    create table users(
+    CREATE TABLE IF NOT EXISTS users(
         id,
         username,
         date_parse
     );
 
-    create table followings(
+    CREATE TABLE IF NOT EXISTS followings(
         from_user_id,
         from_username,
         to_user_id,
@@ -24,7 +24,7 @@ conn.close()
 
 class GbParsePipeline:
     def __init__(self):
-        self.conn = sqlite3.connect('instagramparse.db')
+        self.conn = sqlite3.connect('instagramparse_demo.db')
         self.cur = self.conn.cursor()
 
     def process_item(self, item, spider):

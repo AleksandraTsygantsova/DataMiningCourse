@@ -2,7 +2,6 @@ import datetime as dt
 import json
 import scrapy
 from ..items import InstaUser, InstaFollow
-from scrapy.exceptions import CloseSpider
 
 
 class InstagramSpider(scrapy.Spider):
@@ -16,12 +15,10 @@ class InstagramSpider(scrapy.Spider):
         'followers': "c76146de99bb02f6415203be841dd25a",
     }
 
-    def __init__(self, login, enc_password, user_from, user_to, *args, **kwargs):
+    def __init__(self, login, enc_password, user_from, *args, **kwargs):
         self.login = login
         self.enc_passwd = enc_password
         self.user_from = user_from
-        self.user_to = user_to
-        self.user = [self.user_from]
         super().__init__(*args, **kwargs)
 
     def parse(self, response, **kwargs):
@@ -39,7 +36,8 @@ class InstagramSpider(scrapy.Spider):
             )
         except AttributeError as e:
             if response.json().get('authenticated'):
-                yield response.follow(f'/{self.user_from}', callback=self.user_parse)
+                for user in self.user_from:
+                    yield response.follow(f'/{user}', callback=self.user_parse)
 
     def user_parse(self, response):
         user = self.js_data_extract(response)['entry_data']['ProfilePage'][0]['graphql']['user']
@@ -51,10 +49,6 @@ class InstagramSpider(scrapy.Spider):
         )
         yield from self.get_api_following_request(response, user)
         yield from self.get_api_followers_request(response, user)
-
-        if user['username'] == self.user_to:
-            print(f'HandShake between {self.user_from} and {self.user_to} found')
-            raise CloseSpider
 
     def get_api_following_request(self, response, user, variables=None):
         if variables is None:
@@ -115,8 +109,6 @@ class InstagramSpider(scrapy.Spider):
                     date_parse=dt.datetime.utcnow()
                 )
 
-                self.user.append(item['node']['username'])
-
         else:
             for item in follow_data['data']['user']['edge_followed_by']['edges']:
                 yield InstaFollow(
@@ -132,18 +124,6 @@ class InstagramSpider(scrapy.Spider):
                     username=item['node']['username'],
                     date_parse=dt.datetime.utcnow()
                 )
-
-        try:
-            self.user.pop(self.user.index(user['username']))
-
-        except ValueError:
-            pass
-
-        for user in self.user:
-            yield response.follow(url=f'https://www.instagram.com/{user}/', callback=self.user_parse)
-
-    def check_mutual(self):
-        pass
 
     @staticmethod
     def js_data_extract(response):
