@@ -32,11 +32,11 @@ class GbParsePipeline:
     def process_item(self, item, spider):
         if isinstance(item, InstaUser):
             values = tuple(item.values())
-            # if values[1] in self.df['username'].values:
-            #     print(f'User {values[1]} are already in db')
-            # else:
-            self.cur.execute('INSERT INTO users VALUES (?,?,?)', values)
-            self.conn.commit()
+            if values[1] in self.df['username'].values:
+                print(f'User {values[1]} are already in db')
+            else:
+                self.cur.execute('INSERT INTO users VALUES (?,?,?)', values)
+                self.conn.commit()
 
         elif isinstance(item, InstaFollow):
             values = tuple(item.values())

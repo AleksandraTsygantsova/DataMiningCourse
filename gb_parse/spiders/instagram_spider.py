@@ -45,29 +45,7 @@ class InstagramSpider(scrapy.Spider):
             )
         except AttributeError as e:
             if response.json().get('authenticated'):
-               yield response.follow(f'/{self.user_from}', callback=self.start_circles, cb_kwargs={'user': self.user_from})
-
-    def start_circles(self, response, user):
-        yield from self.user_parse(response)
-        print(3)
-        # Для каждого UserItem определяем список взаимных друзей. По каждому взаимному другу запускаем
-        # парсинг и далее по циклу
-        mutuals = self.usergenerator.run_generator(user)
-        for user in mutuals:
-            self.user_to_parse.append(user)
-
-        # По циклу для каждого User на входе проверяем не является ли он нашим целевым юзером - если является,
-        # останавливаем парсинг, далее проверяем не был ли данный User внесен в базу ранее.
-        # В случае двух отрицательных ответов,
-        # начинаем парсинг пользователя.
-
-        for user in self.user_to_parse:
-            if user == self.user_to:
-                print(f'HandShakes between {self.user_from} and {self.user_to} founded')
-            elif user in self.df['username'].values:
-                print(f'User {user} already in db')
-            else:
-                yield response.follow(url=f'https://www.instagram.com/{user}/', callback=self.user_parse)
+               yield response.follow(f'/{self.user_from}', callback=self.user_parse)
 
     def user_parse(self, response):
         user = self.js_data_extract(response)['entry_data']['ProfilePage'][0]['graphql']['user']
@@ -76,10 +54,11 @@ class InstagramSpider(scrapy.Spider):
             username=user['username'],
             date_parse=dt.datetime.utcnow()
         )
+
         yield from self.get_api_following_request(response, user)
-        print(1)
+
         yield from self.get_api_followers_request(response, user)
-        print(2)
+
 
     def get_api_following_request(self, response, user, variables=None):
         if variables is None:
@@ -133,7 +112,7 @@ class InstagramSpider(scrapy.Spider):
                     to_username=item['node']['username'],
                     date_parse=dt.datetime.utcnow()
                 )
-
+                yield from self.start_circles(response, user)
         else:
             for item in follow_data['data']['user']['edge_followed_by']['edges']:
                 yield InstaFollow(
@@ -143,6 +122,31 @@ class InstagramSpider(scrapy.Spider):
                     to_username=user['username'],
                     date_parse=dt.datetime.utcnow()
                 )
+                yield from self.start_circles(response, user)
+
+
+
+    def start_circles(self, response, user):
+        # Для каждого UserItem определяем список взаимных друзей. По каждому взаимному другу запускаем
+        # парсинг и далее по циклу
+        mutuals = self.usergenerator.run_generator(user['username'])
+        for user in mutuals:
+            self.user_to_parse.append(user)
+
+        # Если взаимных друзей не найдено, продолжаем парсить по Юзеру.
+        if len(self.user_to_parse) == 0:
+            self.user_to_parse.append(user['username'])
+
+        # По циклу для каждого User на входе проверяем не является ли он нашим целевым юзером - если является,
+        # останавливаем парсинг, если не является - продолжаем.
+
+        for user in self.user_to_parse:
+            if user == self.user_to:
+                yield response.follow(url=f'https://www.instagram.com/{user}/', callback=self.user_parse)
+                print(f'HandShakes between {self.user_from} and {self.user_to} founded')
+            else:
+                yield response.follow(url=f'https://www.instagram.com/{user}/', callback=self.user_parse)
+
 
     @staticmethod
     def js_data_extract(response):
